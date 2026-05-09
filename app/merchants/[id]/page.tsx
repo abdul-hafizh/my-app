@@ -23,6 +23,7 @@ type Merchant = {
   bank_code: string;
   account_number: string;
   account_name: string;
+  api_key?: string;
 };
 
 export default function MerchantDetailPage() {
@@ -32,6 +33,9 @@ export default function MerchantDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"info" | "payment">("info");
+
+  const [loadingApiKey, setLoadingApiKey] = useState(false);
+  const [apiKey, setApiKey] = useState("");
 
   const [form, setForm] = useState<Merchant | null>(null);
 
@@ -47,6 +51,7 @@ export default function MerchantDetailPage() {
       }
 
       setForm(json.data);
+      setApiKey(json.data.api_key || "");
       setLoading(false);
     }
 
@@ -59,6 +64,34 @@ export default function MerchantDetailPage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(value || 0);
+  }
+
+  async function generateApiKey() {
+    try {
+      setLoadingApiKey(true);
+
+      const res = await fetch(
+        `/api/merchants/${form?.id}/api-key`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      const json = await res.json();
+
+      if (!json.success) {
+        alert(json.message || "Gagal generate API key");
+        return;
+      }
+
+      setApiKey(json.data.api_key);
+
+      alert("API Key berhasil dibuat");
+    } catch (error) {
+      alert("Terjadi kesalahan");
+    } finally {
+      setLoadingApiKey(false);
+    }
   }
 
   async function updateStatus(status: string) {
@@ -204,6 +237,52 @@ export default function MerchantDetailPage() {
             Suspend
           </button>
         )}
+      </div>
+
+      <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-gray-900">
+              API Key Merchant
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Gunakan API Key ini untuk akses API transaksi.
+            </p>
+
+            <div className="rounded-xl bg-gray-100 px-4 py-3 font-mono text-sm text-gray-900 break-all">
+              {apiKey || "Belum memiliki API Key"}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                if (!apiKey) return;
+
+                await navigator.clipboard.writeText(apiKey);
+
+                alert("API Key berhasil disalin");
+              }}
+              disabled={!apiKey}
+              className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+            >
+              Copy API Key
+            </button>
+
+            <button
+              onClick={generateApiKey}
+              disabled={loadingApiKey}
+              className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
+            >
+              {loadingApiKey
+                ? "Generating..."
+                : apiKey
+                ? "Regenerate API Key"
+                : "Generate API Key"}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="mb-6 flex gap-2 rounded-xl bg-gray-100 p-1">

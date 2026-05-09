@@ -18,7 +18,7 @@ export async function GET(
         m.email,
         m.phone,
         m.status,
-
+        m.api_key,
         mp.business_type,
         mp.address,
         mp.city,
